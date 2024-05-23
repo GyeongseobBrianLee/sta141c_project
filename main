@@ -18,3 +18,19 @@ dat.info()
 numeric_data = dat.select_dtypes(include=['int64', 'float64'])
 categorical_data = dat.select_dtypes(include=['object'])
 
+corr_matrix = numeric_data.corr()
+
+# Compute correlation with target variable (assuming 'SalePrice' is the target variable)
+target_corr = corr_matrix['SalePrice'].abs().sort_values(ascending=False)
+
+# Select top 10 features most correlated with the target variable
+top_features = target_corr.head(11).index  # Including 'SalePrice' itself
+
+# Filter the correlation matrix to include only top features
+filtered_corr_matrix = corr_matrix.loc[top_features, top_features]
+
+# Visualize the filtered correlation matrix as a heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(filtered_corr_matrix, annot=True, fmt='.2f', cmap='coolwarm', linewidths=0.5)
+plt.title('Top 10 Features Correlation Heatmap')
+plt.show()
