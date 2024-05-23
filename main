@@ -1,0 +1,20 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+train = pd.read_csv("~/Desktop/UCD/Spring_2024/sta_141c/final_project/train.csv")
+test = pd.read_csv("~/Desktop/UCD/Spring_2024/sta_141c/final_project/test.csv")
+dat = pd.concat([train, test], axis = 0)
+dat.head()
+dat.info()
+
+with open('/Users/gyeongseoblee/Desktop/UCD/Spring_2024/sta_141c/final_project/data_description.txt') as f:
+    print(f.read())
+
+threshold = len(dat) * 0.5
+dat = dat.loc[:, dat.isnull().sum() < threshold]
+dat.info()
+numeric_data = dat.select_dtypes(include=['int64', 'float64'])
+categorical_data = dat.select_dtypes(include=['object'])
+
