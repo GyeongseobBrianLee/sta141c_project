@@ -1,6 +1,8 @@
 ---
 title: "Data Analysis"
-output: html_notebook
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ## Libraries
@@ -11,6 +13,7 @@ list.of.packages <- c("MASS", "dplyr", "tidyverse", "ggplot2", "leaps", "boot",
                       "glmnet")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
+lapply(list.of.packages, library, character.only = TRUE)
 ```
 
 ## Load Data
@@ -34,6 +37,42 @@ train_qual <- train%>%
   select(!where(is.integer) & !where(is.double))
 ```
 
+## Summary Statistics
+
+```{r}
+model <- lm(SalePrice ~ ., data = train_quant)
+s <- summary(model)
+df <- data.frame("Estimate"=s$coefficients[, 1],
+                 "Std.Error"=s$coefficients[, 2],
+                 "t-value"=s$coefficients[, 3],
+                 "p-value"=s$coefficients[, 4])
+```
+
+
+## Linear Regression
+
+```{r}
+set.seed(39)
+n <- nrow(train_quant)
+train_i <- sample(1:n, (1*n)/2)
+lm.fit <- lm(SalePrice ~ LotArea + OverallQual + OverallCond + 
+              YearBuilt + BsmtFinSF1 + MasVnrArea +
+              BsmtFinSF1 + BsmtFullBath + TotRmsAbvGrd +
+              GarageArea, data=train_quant[train_i, ])
+y_hat <- predict.lm(lm.fit, train_quant[-train_i, ])
+mean((train_quant[-train_i, ]$SalePrice - y_hat)^2, na.rm=T)
+```
+
+
+```{r}
+set.seed(39)
+lm.fit <- lm(SalePrice ~ LotArea + OverallQual + OverallCond + 
+              YearBuilt + BsmtFinSF1 + MasVnrArea +
+              BsmtFinSF1 + BsmtFullBath + TotRmsAbvGrd +
+              GarageArea, data=train_quant)
+y_hat <- predict.lm(lm.fit, train_quant[-train_i, ])
+mean((train_quant[-train_i, ]$SalePrice - y_hat)^2, na.rm=T)
+```
 
 ## Converting rating variables to numeric
 
@@ -233,47 +272,20 @@ kable(names(coef(fit.bwd, 6))[2:7], caption="Selected Parameters")
 kable(names(coef(fit.bwd, 8))[2:9], caption="Selected Parameters")
 ```
 
-## Ridge and Lasso (NOT WORKING)
-
-```{r}
-# Ridge
-set.seed(39)
-x <- model.matrix(SalePrice ~ ., train_quant)[, -1]
-y <- train_quant$SalePrice
-train_i <- sample(1:nrow(x), nrow(x) / 2)
-test_i <- (-train_i)
-y.test <- y[test_i]
-grid <- 10^seq(10, -2, length = 100)
-cv.out <- cv.glmnet(x[train_i, ], y[train_i], alpha = 0) # 10-fold CV by default 
-plot(cv.out)
-
-bestlam <- cv.out$lambda.min
-ridge.mod <- glmnet(x[train_i, ], y[train_i], alpha = 0, lambda = grid)
-plot(ridge.mod, xvar = "lambda")
-
-ridge.pred <- predict(ridge.mod, s = bestlam,
-    newx = x[test_i, ])
-mean((ridge.pred - y.test)^2)
-```
-
-```{r}
-# Lasso
-lasso.mod <- glmnet(x[train_i, ], y[train_i], alpha = 1, lambda = grid)
-cv.out <- cv.glmnet(x[train_i, ], y[train_i], alpha = 1) # 10-fold CV by default 
-plot(cv.out)
-bestlam <- cv.out$lambda.min
-plot(lasso.mod, xvar = "lambda")
-```
-
-```{r}
-out <- glmnet(x[train_i, ], y[train_i], alpha = 1, lambda = grid) 
-lasso.coef <- predict(out, type = "coefficients",
-    s = bestlam)[1:20, ]
-lasso.coef # sparse estimates: 8 of them are 0
-lasso.coef[lasso.coef != 0]
-```
-
 ## Exploratory Graphs
+
+```{r}
+# Density Distribution of all variables
+train_quant%>%
+  pivot_longer(cols=everything())%>%
+  ggplot(aes(x=value))+
+  geom_density()+
+  facet_wrap(~name, scales="free", ncol=5)+
+  theme_minimal()+
+  theme(panel.background = element_rect(fill="#e2ddd4", color = "#e2ddd4", 
+                                        size = 0.5, linetype = "solid"))
+```
+
 
 ```{r}
 train_quant%>%
